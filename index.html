@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0.2em;
+    }
+    html {
+      background-color: rgb(232, 233, 238);
+    }
+    .test {
+      display: flex;
+    }
+    .shake {
+      /* Start the shake animation and make the animation last for 0.5 seconds */
+      animation: shake 0.5s;
+
+      /* When the animation is finished, start again */
+      /* animation-iteration-count: infinite; */
+    }
+    @keyframes shake {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      10% { transform: translate(-1px, -2px) rotate(-1deg); }
+      20% { transform: translate(-3px, 0px) rotate(1deg); }
+      30% { transform: translate(3px, 2px) rotate(0deg); }
+      40% { transform: translate(1px, -1px) rotate(1deg); }
+      50% { transform: translate(-1px, 2px) rotate(-1deg); }
+      60% { transform: translate(-3px, 1px) rotate(0deg); }
+      70% { transform: translate(3px, 1px) rotate(-1deg); }
+      80% { transform: translate(-1px, -1px) rotate(1deg); }
+      90% { transform: translate(1px, 2px) rotate(0deg); }
+      100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+  </style>
+  <title>Friend Timezones</title>
+</head>
+<body>
+  <h1>Hi! :)</h1>
+  <br/>
+  <table id="list"></table>
+  <br/>
+  <div id="nameLabel">Name</div>
+  <input id="name"/>
+  <br/>
+  <br/>
+  <div>Add my own timezone</div>
+  <div class="test">
+    <div id="displayMyTimezone"></div>
+    <button onclick="addMyTimezone()">Add</button>
+  </div>
+  <br/>
+  <div>Add different timezone</div>
+  <div class="test">
+    <select id="timezoneOptions" onchange="changeSelectedOption(this.value)">
+    </select>
+    <div id="displaySelectedOptionTime"></div>
+    <button onclick="addTimezoneFromOption()">Add</button>
+  </div>
+  <br/>
+  <br/>
+  <button id="buttonCopy" onClick="getUrl()">Click here to copy URL to share the list of timezones</button>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const elementList = document.getElementById("list");
+    const elementDisplayMyTimezone = document.getElementById("displayMyTimezone");
+    const elementDisplaySelectedOptionTime = document.getElementById("displaySelectedOptionTime");
+    const elementNameLabel = document.getElementById("nameLabel");
+    const elementNameInput = document.getElementById("name");
+    const elementSelect = document.getElementById("timezoneOptions");
+    const elementButtonCopyUrl = document.getElementById("buttonCopy");
+    const timezones = {
+      "UTC-12": 12 * 60,
+      "UTC-11": 11 * 60,
+      "UTC-10": 10 * 60,
+      "UTC-9:30": 9 * 60 + 30,
+      "UTC-9": 9 * 60,
+      "UTC-8": 8 * 60,
+      "UTC-7": 7 * 60,
+      "UTC-6": 6 * 60,
+      "UTC-5": 5 * 60,
+      "UTC-4": 4 * 60,
+      "UTC-3": 3 * 60,
+      "UTC-2:30": 2 * 60 + 30,
+      "UTC-2": 2 * 60,
+      "UTC-1": 1 * 60,
+      "UTC+0": 0,
+      "UTC+1": -1 * 60,
+      "UTC+2": -2 * 60,
+      "UTC+3": -3 * 60,
+      "UTC+3:30": -3 * 60 - 30,
+      "UTC+4": -4 * 60,
+      "UTC+4:30": -4 * 60 - 30,
+      "UTC+5": -5 * 60,
+      "UTC+5:30": -5 * 60 - 30,
+      "UTC+5:45": -5 * 60 - 45,
+      "UTC+6": -6 * 60,
+      "UTC+6:30": -6 * 60 - 30,
+      "UTC+7": -7 * 60,
+      "UTC+8": -8 * 60,
+      "UTC+8:45": -8 * 60 - 45,
+      "UTC+9": -9 * 60,
+      "UTC+9:30": -9 * 60 - 30,
+      "UTC+10": -10 * 60,
+      "UTC+10:30": -10 * 60 - 30,
+      "UTC+11": -11 * 60,
+      "UTC+12": -12 * 60,
+      "UTC+13": -13 * 60,
+      "UTC+13:45": -13 * 60 - 45,
+      "UTC+14": -14 * 60,
+    }
+    function getTimezone (tz) {
+      return timezones[tz];
+    }
+    function formattedDate (d) {
+      let MM = d.getMonth();
+      let DD = d.getDay();
+      let YYYY = d.getFullYear();
+      let hh = d.getHours();
+      let mm = d.getMinutes();
+      let ss = d.getSeconds();
+      if (MM.toString().length == 1) MM = `0${MM}`
+      if (DD.toString().length == 1) DD = `0${DD}`
+      if (hh.toString().length == 1) hh = `0${hh}`
+      if (mm.toString().length == 1) mm = `0${mm}`
+      if (ss.toString().length == 1) ss = `0${ss}`
+      return `${MM}/${DD}/${YYYY}  ${hh}:${mm}:${ss}`
+    }
+    function getDateWithoutTimezone () {
+      const date = new Date();
+      date.setTime(date.getTime() - date.getTimezoneOffset() * 60000);
+      return date;
+    }
+    function refreshTimezonesInList () {
+      elementList.innerHTML = "";
+      urlParams.forEach((value, key) => {
+        const offset = parseInt(value) * 60000;
+        const date = getDateWithoutTimezone();
+        date.setTime(date.getTime() + offset);
+        const nodeRow = document.createElement("tr");
+        const nodeDelButton = document.createElement("td");
+        const buttonNodeDelButton = document.createElement("button");
+        buttonNodeDelButton.onclick = () => {
+          removeTimezone(key);
+        }
+        const textNodeDelButton = document.createTextNode("delete");
+        buttonNodeDelButton.appendChild(textNodeDelButton);
+        nodeDelButton.appendChild(buttonNodeDelButton);
+        const nodeName = document.createElement("td");
+        const textNodeName = document.createTextNode(key);
+        nodeName.appendChild(textNodeName);
+        const nodeValue = document.createElement("td");
+        const textNodeValue = document.createTextNode(formattedDate(date));
+        nodeValue.appendChild(textNodeValue);
+        nodeRow.appendChild(nodeName);
+        nodeRow.appendChild(nodeValue);
+        nodeRow.appendChild(nodeDelButton);
+        elementList.appendChild(nodeRow);
+      });
+    }
+    function refreshSelectedTimezone() {
+      const offset = parseInt(elementSelect.value) * 60000;
+      const date = getDateWithoutTimezone();
+      date.setTime(date.getTime() + offset);
+      const textnode = document.createTextNode(formattedDate(date));
+      elementDisplaySelectedOptionTime.innerHTML = "";
+      elementDisplaySelectedOptionTime.appendChild(textnode);
+    }
+    function refreshMyTimezone() {
+      const date = new Date();
+      const textnode = document.createTextNode(formattedDate(date));
+      elementDisplayMyTimezone.innerHTML = "";
+      elementDisplayMyTimezone.appendChild(textnode);
+    }
+    function refreshAllTimezones () {
+      refreshTimezonesInList();
+      refreshMyTimezone();
+      refreshSelectedTimezone();
+    }
+    function getFriendName () {
+      const name = elementNameInput.value;
+      if (name.trim() == "") {
+        elementNameLabel.innerHTML = "NAME !!!";
+        elementNameLabel.style.color = "red";
+        elementNameLabel.style.fontWeight = "bold";
+        elementNameLabel.className = "shake";
+        setTimeout(() => {
+          if (elementNameLabel.className == "shake") {
+            elementNameLabel.innerHTML = "Name";
+            elementNameLabel.style.color = "black";
+            elementNameLabel.style.fontWeight = "";
+            elementNameLabel.className = "";
+          }
+        }, 2000);
+        return null;
+      } else {
+        return name;
+      }
+    }
+    function addTimezone (name, offset) {
+      urlParams.append(name, offset);
+      document.location.search = urlParams;
+    }
+    function addMyTimezone () {
+      const name = getFriendName();
+      if (name != null) {
+        const date = new Date();
+        const offset = date.getTimezoneOffset();
+        addTimezone(name, offset);
+      }
+    }
+    function removeTimezone (name) {
+      urlParams.delete(name);
+      document.location.search = urlParams;
+    }
+    function changeSelectedOption (value) {
+      refreshSelectedTimezone();
+    }
+    function addTimezoneFromOption () {
+      const name = getFriendName();
+      if (name != null) {
+        const date = getDateWithoutTimezone();
+        const offset = elementSelect.value * 60000;
+        addTimezone(name, offset);
+      }
+    }
+    function getUrl () {
+      const currentUrl = window.location.href;
+      navigator.clipboard.writeText(currentUrl);
+      elementButtonCopyUrl.innerHTML = "Link copied to clipboard!";
+      elementButtonCopyUrl.style.backgroundColor = "#b5e681";
+      setTimeout(() => {
+        elementButtonCopyUrl.innerHTML = "Click here to copy URL to share the list of timezones";
+        elementButtonCopyUrl.style.backgroundColor = "#F0F0F0";
+      }, 3000);
+    }
+    Object.keys(timezones).forEach(tz => {
+      const node = document.createElement("option");
+      const textnode = document.createTextNode(tz);
+      node.value = timezones[tz];
+      node.appendChild(textnode);
+      elementSelect.appendChild(node);
+    });
+    refreshAllTimezones();
+    setInterval(refreshAllTimezones, 1000);
+  </script>
+</body>
+</html>
